@@ -102,80 +102,81 @@ df['descricao'] = [
     'Opção focada em proteína, com baixo teor de carboidratos.', 'Rico em gorduras saudáveis e fibras.', 'Mistura equilibrada de proteínas e fibras.', 'Carboidrato simples combinado com proteína.', 'Carboidrato de absorção mais lenta.', 'Prato de carboidrato complexo e legumes.', 'Carne magra com baixo teor de gordura.', 'Rico em fibras e proteínas.', 'Massa caseira com legumes e ingredientes naturais.', 'Prato completo com vegetais e proteína magra.', 'Versão adaptada, baixo carboidrato.', 'Sopa nutritiva com baixo teor calórico.', 'Opção leve e proteica.', 'Excelente substituto do arroz tradicional.', 'Sopa leve, rica em fibras.', 'Lanche salgado equilibrado.', 'Lanche refrescante.', 'Frutas assadas com creme dietético.', 'Fonte de gorduras boas e fibras.', 'Lanche rico em fibras e antioxidantes.'
 ]
 
-# Função Principal de Recomendação
-def recomendar_sistema_especialista(refeicao, diabetes, ingrediente_usuario):
-    # Usando o DF carregado na memória
-    db_local = df.copy()
+#Treinamento da Árvore de Decisão (Executado uma vez)
+if 'modelo_arvore' not in st.session_state:
+    df_treino = df.copy()
+    df_treino['tipo_refeicao'] = df_treino['tipo_refeicao'].apply(normalizar_texto)
+    df_treino['tipo_diabetes'] = df_treino['tipo_diabetes'].apply(normalizar_texto)
+
+    cols_to_encode = ['tipo_refeicao', 'tipo_diabetes']
+    df_encoded = pd.get_dummies(df_treino, columns=cols_to_encode, prefix=cols_to_encode)
+
+    ingredientes_list = [[normalizar_texto(i.strip()) for i in row.split(',')] for row in df['ingredientes']]
+    mlb = MultiLabelBinarizer()
+    ingredientes_encoded = mlb.fit_transform(ingredientes_list)
+    ingredientes_df = pd.DataFrame(ingredientes_encoded, columns=[f'ingrediente_{i}' for i in mlb.classes_])
+
+    df_final = pd.concat([df_encoded.drop('ingredientes', axis=1), ingredientes_df], axis=1)
+
+    colunas_x_treino = df_final.drop(['nome', 'descricao'], axis=1).columns
+    X = df_final[colunas_x_treino]
+    Y = df_final['nome']
+
+    modelo = DecisionTreeClassifier(random_state=42)
+    modelo.fit(X, Y)
+
+    # Salva no estado da sessão
+    st.session_state.modelo_arvore = modelo
+    st.session_state.mlb = mlb
+    st.session_state.colunas_x_treino = colunas_x_treino
+
+#Função de Recomendação com ML
+
+def recomendar_com_ml(refeicao, diabetes, ingrediente_usuario):
+    mlb_local = st.session_state.mlb
+    colunas_local = st.session_state.colunas_x_treino
+    modelo_local = st.session_state.modelo_arvore
+
+    # Prepara input
+    X_novo = pd.DataFrame(0, index=[0], columns=colunas_local)
 
     ref_norm = normalizar_texto(refeicao)
+    if ref_norm in ['almoco', 'jantar']: ref_norm = 'principal'
+
     dia_norm = normalizar_texto(diabetes).replace(" ", "")
     ing_norm = normalizar_texto(ingrediente_usuario)
 
-    db_local['ref_norm'] = db_local['tipo_refeicao'].apply(normalizar_texto)
-    db_local['dia_norm'] = db_local['tipo_diabetes'].apply(normalizar_texto)
+    # Seta colunas One-Hot
+    if f'tipo_refeicao_{ref_norm}' in X_novo.columns: X_novo.loc[0, f'tipo_refeicao_{ref_norm}'] = 1
+    if f'tipo_diabetes_{dia_norm}' in X_novo.columns: X_novo.loc[0, f'tipo_diabetes_{dia_norm}'] = 1
+    elif 'ambos' in dia_norm and f'tipo_diabetes_ambos' in X_novo.columns: X_novo.loc[0, f'tipo_diabetes_ambos'] = 1
 
-    ref_filtro = ref_norm
-    if ref_norm in ['almoco', 'jantar']:
-        ref_filtro = 'principal'
+    # Seta ingrediente
+    if ing_norm and ing_norm not in ['nao', 'na', ''] and ing_norm in mlb_local.classes_:
+         X_novo.loc[0, f'ingrediente_{ing_norm}'] = 1
 
-    if "tipo1" in dia_norm:
-        tipos_validos = ['tipo1', 'ambos']
-        tipo_user = "Tipo 1"
-    elif "tipo2" in dia_norm:
-        tipos_validos = ['tipo2', 'ambos']
-        tipo_user = "Tipo 2"
-    else:
-        tipos_validos = ['tipo1', 'tipo2', 'ambos']
-        tipo_user = "Desconhecido"
+    # Predição
+    try:
+        receita_prevista = modelo_local.predict(X_novo)[0]
 
-    receita_escolhida_nome = None
-    aviso_ingrediente = None
-    mismatch_info = None 
+        # Guardrail: Verifica compatibilidade
+        receita_obj = df[df['nome'] == receita_prevista].iloc[0]
 
-    candidatos_compativeis = db_local[(db_local['ref_norm'] == ref_filtro) & (db_local['dia_norm'].isin(tipos_validos))]
-    candidatos_all_types = db_local[(db_local['ref_norm'] == ref_filtro)]
+        # Lógica simplificada de compatibilidade
+        tipo_user_str = "Tipo 1" if "tipo1" in dia_norm else "Tipo 2"
+        tipos_validos = ['tipo1', 'ambos'] if "tipo1" in dia_norm else ['tipo2', 'ambos']
 
-    # P1/P2: Busca por Ingrediente
-    if ing_norm and ing_norm not in ['nao', 'na', '']:
-        candidatos_P1 = []
-        for index, row in candidatos_compativeis.iterrows():
-            if ing_norm in normalizar_texto(row['ingredientes']):
-                candidatos_P1.append(row['nome'])
-        
-        if candidatos_P1:
-            receita_escolhida_nome = random.choice(candidatos_P1)
-        else:
-            # P2: Mismatch search
-            candidatos_P2 = []
-            for index, row in candidatos_all_types.iterrows():
-                if ing_norm in normalizar_texto(row['ingredientes']):
-                    candidatos_P2.append(row['nome'])
-            
-            if candidatos_P2:
-                receita_escolhida_nome = random.choice(candidatos_P2)
-                receita_obj_mismatch = db_local[db_local['nome'] == receita_escolhida_nome].iloc[0]
-                if receita_obj_mismatch['dia_norm'] not in tipos_validos:
-                    mismatch_info = (receita_obj_mismatch['tipo_diabetes'], tipo_user)
-            else:
-                aviso_ingrediente = f"⚠️ Não encontrei nenhuma receita com '{ingrediente_usuario}' para {refeicao}. Selecionei uma alternativa compatível:"
+        mismatch = None
+        aviso = None
 
-    # P3: Fallback Aleatório
-    if receita_escolhida_nome is None and not candidatos_compativeis.empty:
-        receita_escolhida_nome = candidatos_compativeis.sample(1)['nome'].values[0]
-    elif receita_escolhida_nome is None:
+        if normalizar_texto(receita_obj['tipo_diabetes']) not in tipos_validos:
+            mismatch = (receita_obj['tipo_diabetes'], tipo_user_str)
+
+        return receita_obj, aviso, mismatch
+
+    except Exception as e:
         return None, None, None
 
-    receita_final = db_local[db_local['nome'] == receita_escolhida_nome].iloc[0]
-    return receita_final, aviso_ingrediente, mismatch_info
-
-def verificar_assunto_com_gemini(texto):
-    try:
-        response = modelo_gemini.generate_content(
-            f"O texto '{texto}' tem relacao com alimentacao, saude, diabetes, culinaria ou receitas? Responda APENAS 'SIM' ou 'NAO'."
-        )
-        return "SIM" in response.text.upper()
-    except:
-        return True
 
 # --- 4. INTERFACE STREAMLIT (Lógica de Fases) ---
 
@@ -234,7 +235,7 @@ elif st.session_state.fase == 2:
     if col_buscar.button("🔍 Buscar Receita"):
         # Executa a recomendação
         with st.spinner("Consultando nossa base de dados inteligente..."):
-            rec_obj, aviso, mismatch = recomendar_sistema_especialista(
+            rec, aviso, mismatch = recomendar_com_ml(
                 st.session_state.dados_usuario['refeicao'],
                 st.session_state.dados_usuario['diabetes'],
                 ingrediente
