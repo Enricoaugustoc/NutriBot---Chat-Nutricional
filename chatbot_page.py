@@ -18,7 +18,7 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Configuração GEMINI
-gemini_api_key = "AIzaSyDGcDD_rLoW6Zx562JQMedMfFpy0o8RLEc"  # Sua Key
+gemini_api_key = "AIzaSyDGcDD_rLoW6Zx562JQMedMfFpy0o8RLEc" 
 gemini.configure(api_key=gemini_api_key)
 modelo_gemini = gemini.GenerativeModel("models/gemini-flash-latest")
 
