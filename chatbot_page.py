@@ -13,14 +13,23 @@ import random
 st.set_page_config(page_title="NutriBot Inteligente", page_icon="🥗")
 
 # Configuração SUPABASE
-SUPABASE_URL = "https://bibhwrrpqmotsacemilb.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpYmh3cnJwcW1vdHNhY2VtaWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNjcwNDAsImV4cCI6MjA3ODY0MzA0MH0.HKyVv94WLL946GRqcMLK-sn2A0fa-99p-TNfEQSGzSY"
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    st.error("Erro ao configurar Supabase: Verifique as Secrets.")
+    st.stop()
 
-# Configuração GEMINI
-gemini_api_key = "AIzaSyDGcDD_rLoW6Zx562JQMedMfFpy0o8RLEc" 
-gemini.configure(api_key=gemini_api_key)
-modelo_gemini = gemini.GenerativeModel("models/gemini-flash-latest")
+# Configuração GEMINI (Pegando das Secrets)
+# Certifique-se de configurar "GOOGLE_API_KEY" no Streamlit Cloud
+try:
+    gemini_api_key = st.secrets["GOOGLE_API_KEY"]
+    gemini.configure(api_key=gemini_api_key)
+    modelo_gemini = gemini.GenerativeModel("models/gemini-flash-latest")
+except Exception as e:
+    st.error("Erro ao configurar Gemini: Verifique a Secret GOOGLE_API_KEY.")
+    st.stop()
 
 # Inicialização de Variáveis de Estado (Session State)
 if 'user' not in st.session_state:
