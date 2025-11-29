@@ -323,7 +323,7 @@ elif st.session_state.fase == 3:
                     resposta = st.session_state.gemini_chat_instance.send_message(prompt_final)
                     bot_reply = resposta.text
             except Exception as e:
-                bot_reply = "Tive um problema de conexão. Tente novamente."
+                bot_reply = f"ERRO REAL: {str(e)}"
 
             # 5. Adiciona bot msg ao histórico
             st.session_state.chat_history.append({"role": "assistant", "content": bot_reply})
