@@ -3,3 +3,6 @@ seaborn
 matplotlib
 streamlit
 supabase
+scikit-learn
+joblib
+google-generativeai
