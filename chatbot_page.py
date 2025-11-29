@@ -339,3 +339,6 @@ elif st.session_state.fase == 3:
             st.session_state.chat_history.append({"role": "assistant", "content": bot_reply})
             with st.chat_message("assistant"):
                 st.markdown(bot_reply)
+
+
+#mudanca
