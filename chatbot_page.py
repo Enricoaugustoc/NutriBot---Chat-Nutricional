@@ -26,7 +26,7 @@ except Exception as e:
 try:
     gemini_api_key = st.secrets["GOOGLE_API_KEY"]
     gemini.configure(api_key=gemini_api_key)
-    modelo_gemini = gemini.GenerativeModel("models/gemini-flash-latest")
+    modelo_gemini = gemini.GenerativeModel("gemini-1.5-flash")
 except Exception as e:
     st.error("Erro ao configurar Gemini: Verifique a Secret GOOGLE_API_KEY.")
     st.stop()
