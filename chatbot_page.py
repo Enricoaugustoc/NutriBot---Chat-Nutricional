@@ -13,14 +13,23 @@ import random
 st.set_page_config(page_title="NutriBot Inteligente", page_icon="🥗")
 
 # Configuração SUPABASE
-SUPABASE_URL = "https://bibhwrrpqmotsacemilb.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpYmh3cnJwcW1vdHNhY2VtaWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNjcwNDAsImV4cCI6MjA3ODY0MzA0MH0.HKyVv94WLL946GRqcMLK-sn2A0fa-99p-TNfEQSGzSY"
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    st.error("Erro ao configurar Supabase: Verifique as Secrets.")
+    st.stop()
 
-# Configuração GEMINI
-gemini_api_key = "AIzaSyDGcDD_rLoW6Zx562JQMedMfFpy0o8RLEc"  # Sua Key
-gemini.configure(api_key=gemini_api_key)
-modelo_gemini = gemini.GenerativeModel("models/gemini-flash-latest")
+# Configuração GEMINI (Pegando das Secrets)
+# Certifique-se de configurar "GOOGLE_API_KEY" no Streamlit Cloud
+try:
+    gemini_api_key = st.secrets["GOOGLE_API_KEY"]
+    gemini.configure(api_key=gemini_api_key)
+    modelo_gemini = gemini.GenerativeModel("models/gemini-flash-latest")
+except Exception as e:
+    st.error("Erro ao configurar Gemini: Verifique a Secret GOOGLE_API_KEY.")
+    st.stop()
 
 # Inicialização de Variáveis de Estado (Session State)
 if 'user' not in st.session_state:
@@ -36,7 +45,7 @@ if 'chat_history' not in st.session_state:
 if 'gemini_chat_instance' not in st.session_state:
     st.session_state.gemini_chat_instance = modelo_gemini.start_chat(history=[])
 
-# --- 2. SISTEMA DE LOGIN (Mantido do Código 1) ---
+# --- 2. SISTEMA DE LOGIN ---
 
 def login(email, password):
     try:
@@ -73,7 +82,7 @@ if st.session_state.user is None:
     login_page()
     st.stop()
 
-# --- 3. LÓGICA DE DADOS E IA (Mantido do Código 2) ---
+# --- 3. LÓGICA DE DADOS E IA ---
 
 def normalizar_texto(texto):
     if not isinstance(texto, str): return str(texto)
@@ -81,7 +90,7 @@ def normalizar_texto(texto):
     nfkd_form = unicodedata.normalize('NFKD', texto)
     return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
-# Base de Dados (Recriada aqui para garantir funcionamento)
+# Base de Dados
 data = {
     'nome': ['Omelete de claras', 'Creme de abacate com cacau', 'Iogurte com granola caseira', 'Tapioca com queijo branco', 'Panqueca integral', 'Nhoque ao molho mediterraneo', 'Maminha ao molho de ervas', 'Risoto do mar', 'Ravioli de curcuma com alho-poro', 'Charutinho caipira', 'Estrogonofe de frango com berinjela', 'Sopa de cebola especial', 'Tilapia grelhada', 'Arroz de couve-flor', 'Sopa de legumes', 'Quiche de presunto', 'Refresco de melancia', 'Salada de frutas ao forno', 'Mix de castanhas', 'Frutas com chia'],
     'tipo_refeicao': ['cafe', 'cafe', 'cafe', 'cafe', 'cafe', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'lanche', 'lanche', 'lanche', 'lanche', 'lanche'],
@@ -314,7 +323,7 @@ elif st.session_state.fase == 3:
                     resposta = st.session_state.gemini_chat_instance.send_message(prompt_final)
                     bot_reply = resposta.text
             except Exception as e:
-                bot_reply = "Tive um problema de conexão. Tente novamente."
+                bot_reply = f"ERRO REAL: {str(e)}"
 
             # 5. Adiciona bot msg ao histórico
             st.session_state.chat_history.append({"role": "assistant", "content": bot_reply})
