@@ -36,7 +36,7 @@ if 'chat_history' not in st.session_state:
 if 'gemini_chat_instance' not in st.session_state:
     st.session_state.gemini_chat_instance = modelo_gemini.start_chat(history=[])
 
-# --- 2. SISTEMA DE LOGIN (Mantido do Código 1) ---
+# --- 2. SISTEMA DE LOGIN ---
 
 def login(email, password):
     try:
@@ -73,7 +73,7 @@ if st.session_state.user is None:
     login_page()
     st.stop()
 
-# --- 3. LÓGICA DE DADOS E IA (Mantido do Código 2) ---
+# --- 3. LÓGICA DE DADOS E IA ---
 
 def normalizar_texto(texto):
     if not isinstance(texto, str): return str(texto)
@@ -81,7 +81,7 @@ def normalizar_texto(texto):
     nfkd_form = unicodedata.normalize('NFKD', texto)
     return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
-# Base de Dados (Recriada aqui para garantir funcionamento)
+# Base de Dados
 data = {
     'nome': ['Omelete de claras', 'Creme de abacate com cacau', 'Iogurte com granola caseira', 'Tapioca com queijo branco', 'Panqueca integral', 'Nhoque ao molho mediterraneo', 'Maminha ao molho de ervas', 'Risoto do mar', 'Ravioli de curcuma com alho-poro', 'Charutinho caipira', 'Estrogonofe de frango com berinjela', 'Sopa de cebola especial', 'Tilapia grelhada', 'Arroz de couve-flor', 'Sopa de legumes', 'Quiche de presunto', 'Refresco de melancia', 'Salada de frutas ao forno', 'Mix de castanhas', 'Frutas com chia'],
     'tipo_refeicao': ['cafe', 'cafe', 'cafe', 'cafe', 'cafe', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'lanche', 'lanche', 'lanche', 'lanche', 'lanche'],
