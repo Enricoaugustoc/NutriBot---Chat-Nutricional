@@ -178,6 +178,15 @@ def recomendar_com_ml(refeicao, diabetes, ingrediente_usuario):
         return None, None, None
 
 
+def verificar_assunto_com_gemini(texto):
+    try:
+        response = modelo_gemini.generate_content(
+            f"O texto '{texto}' tem relacao com alimentacao, saude, diabetes, culinaria ou receitas? Responda APENAS 'SIM' ou 'NAO'."
+        )
+        return "SIM" in response.text.upper()
+    except:
+        return True
+
 # --- 4. INTERFACE STREAMLIT (Lógica de Fases) ---
 
 # Cabeçalho e Logout
@@ -235,7 +244,7 @@ elif st.session_state.fase == 2:
     if col_buscar.button("🔍 Buscar Receita"):
         # Executa a recomendação
         with st.spinner("Consultando nossa base de dados inteligente..."):
-            rec, aviso, mismatch = recomendar_com_ml(
+            rec_obj, aviso, mismatch = recomendar_com_ml(
                 st.session_state.dados_usuario['refeicao'],
                 st.session_state.dados_usuario['diabetes'],
                 ingrediente
