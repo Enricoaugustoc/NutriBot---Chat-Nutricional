@@ -7,6 +7,7 @@ import joblib
 import google.generativeai as gemini
 import unicodedata
 import random
+import numpy as np
 
 # --- 1. CONFIGURAÇÕES INICIAIS ---
 
@@ -92,23 +93,24 @@ def normalizar_texto(texto):
 
 # Base de Dados
 data = {
-    'nome': ['Omelete de claras', 'Creme de abacate com cacau', 'Iogurte com granola caseira', 'Tapioca com queijo branco', 'Panqueca integral', 'Nhoque ao molho mediterraneo', 'Maminha ao molho de ervas', 'Risoto do mar', 'Ravioli de curcuma com alho-poro', 'Charutinho caipira', 'Estrogonofe de frango com berinjela', 'Sopa de cebola especial', 'Tilapia grelhada', 'Arroz de couve-flor', 'Sopa de legumes', 'Quiche de presunto', 'Refresco de melancia', 'Salada de frutas ao forno', 'Mix de castanhas', 'Frutas com chia'],
+    'nome': ['Omelete de claras', 'Creme de abacate com cacau', 'Iogurte com granola caseira', 'Tapioca com queijo branco', 'Panqueca integral', 'Nhoque ao molho mediterrâneo', 'Maminha ao molho de ervas', 'Risoto do mar', 'Ravioli de cúrcuma com alho-poro', 'Charutinho caipira', 'Estrogonofe de frango com berinjela', 'Sopa de cebola especial', 'Tilápia grelhada', 'Arroz de couve-flor', 'Sopa de legumes', 'Quiche de presunto', 'Refresco de melancia', 'Salada de frutas ao forno', 'Mix de castanhas', 'Frutas com chia'],
     'tipo_refeicao': ['cafe', 'cafe', 'cafe', 'cafe', 'cafe', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'principal', 'lanche', 'lanche', 'lanche', 'lanche', 'lanche'],
     'tipo_diabetes': ['tipo2', 'ambos', 'ambos', 'tipo2', 'tipo1', 'tipo1', 'tipo2', 'ambos', 'tipo1', 'ambos', 'ambos', 'tipo2', 'tipo2', 'tipo2', 'ambos', 'tipo2', 'tipo1', 'tipo1', 'tipo2', 'ambos'],
-    'ingredientes': ['Ovos, tomate, sal, azeite, ovo', 'Abacate, cacau em po, adocante natural, leite vegetal, castanhas, fruta', 'Iogurte natural, aveia, mel, castanhas, iogurte', 'Goma de tapioca, queijo branco, sal, queijo', 'Farinha integral, ovo, leite, acucar mascavo, ovo', 'Mandioquinha, clara, margarina, farinha, azeite, berinjela, abobrinha, tomate, vegetal', 'Maminha, sal, alho, azeite, manjericao, salsa, tomilho, creme de leite light, carne', 'Badejo, cebola, arroz integral, vinho branco, brocolis, creme de leite light, acafrao, peixe', 'Farinha de trigo, ovo, azeite, curcuma, queijo de minas light, alho-poro, manjericao, azeitona, queijo', 'Couve-manteiga, frango desfiado, cebola, milho verde, salsa, caldo de legumes, frango', 'Frango, pimenta, azeite, cebola, berinjela, tomate, mostarda, catchup light, creme de leite light, frango', 'Alho-poro, cebola, cebolinha, azeite, farinha, mostarda, caldo de galinha, leite em po desnatado, cebola', 'Tilapia, sal, limao, alho, peixe', 'Couve-flor, azeite, sal, alho, vegetal', 'Abobrinha, cenoura, alho, tomate, agua, vegetal', 'Iogurte, margarina, farinha, presunto magro, acelga, queijo parmesao light, queijo', 'Melancia, agua, iogurte desnatado, gengibre, fruta', 'Pessego diet, banana, manga, morango, fruta', 'Castanhas, nozes, amendoas, castanha', 'Morango, banana, chia, fruta']
+    'ingredientes': ['Ovos, tomate, sal, azeite, ovo', 'Abacate, cacau em pó, adoçante natural, leite vegetal, castanhas, fruta', 'Iogurte natural, aveia, mel, castanhas, iogurte', 'Goma de tapioca, queijo branco, sal, queijo', 'Farinha integral, ovo, leite, açucar mascavo', 'Mandioquinha, clara, margarina, farinha, azeite, berinjela, abobrinha, tomate, vegetal', 'Maminha, sal, alho, azeite, manjericão, salsa, tomilho, creme de leite light', 'Badejo, cebola, arroz integral, vinho branco, brócolis, creme de leite light, açafrão', 'Farinha de trigo, ovo, azeite, curcuma, queijo de minas light, alho-poró, manjericão, azeitona, queijo', 'Couve-manteiga, frango desfiado, cebola, milho verde, salsa, caldo de legumes, frango', 'Frango, pimenta, azeite, cebola, berinjela, tomate, mostarda, catchup light, creme de leite light', 'Alho-poró, cebola, cebolinha, azeite, farinha, mostarda, caldo de galinha, leite em pó desnatado', 'Tilápia, sal, limão, alho', 'Couve-flor, azeite, sal, alho, vegetal', 'Abobrinha, cenoura, alho, tomate, água, vegetal', 'Iogurte, margarina, farinha, presunto magro, acelga, queijo parmesão light', 'Melancia, água, iogurte desnatado, gengibre, fruta', 'Pêssego diet, banana, manga, morango, fruta', 'Castanhas, nozes, amêndoas, castanha', 'Morango, banana, chia, fruta']
 }
 df = pd.DataFrame(data)
 df['descricao'] = [
     'Opção focada em proteína, com baixo teor de carboidratos.', 'Rico em gorduras saudáveis e fibras.', 'Mistura equilibrada de proteínas e fibras.', 'Carboidrato simples combinado com proteína.', 'Carboidrato de absorção mais lenta.', 'Prato de carboidrato complexo e legumes.', 'Carne magra com baixo teor de gordura.', 'Rico em fibras e proteínas.', 'Massa caseira com legumes e ingredientes naturais.', 'Prato completo com vegetais e proteína magra.', 'Versão adaptada, baixo carboidrato.', 'Sopa nutritiva com baixo teor calórico.', 'Opção leve e proteica.', 'Excelente substituto do arroz tradicional.', 'Sopa leve, rica em fibras.', 'Lanche salgado equilibrado.', 'Lanche refrescante.', 'Frutas assadas com creme dietético.', 'Fonte de gorduras boas e fibras.', 'Lanche rico em fibras e antioxidantes.'
 ]
 
-#Treinamento da Árvore de Decisão (Executado uma vez)
+# Treinamento da Árvore de Decisão
 if 'modelo_arvore' not in st.session_state:
     df_treino = df.copy()
-    df_treino['tipo_refeicao'] = df_treino['tipo_refeicao'].apply(normalizar_texto)
+
+    # 1. Pré-processamento e Encoding
     df_treino['tipo_diabetes'] = df_treino['tipo_diabetes'].apply(normalizar_texto)
 
-    cols_to_encode = ['tipo_refeicao', 'tipo_diabetes']
+    cols_to_encode = ['tipo_diabetes']
     df_encoded = pd.get_dummies(df_treino, columns=cols_to_encode, prefix=cols_to_encode)
 
     ingredientes_list = [[normalizar_texto(i.strip()) for i in row.split(',')] for row in df['ingredientes']]
@@ -116,66 +118,130 @@ if 'modelo_arvore' not in st.session_state:
     ingredientes_encoded = mlb.fit_transform(ingredientes_list)
     ingredientes_df = pd.DataFrame(ingredientes_encoded, columns=[f'ingrediente_{i}' for i in mlb.classes_])
 
-    df_final = pd.concat([df_encoded.drop('ingredientes', axis=1), ingredientes_df], axis=1)
+    # Remove colunas não necessárias para o treino de X
+    df_final = pd.concat([df_encoded.drop(['ingredientes', 'tipo_refeicao'], axis=1), ingredientes_df], axis=1)
 
     colunas_x_treino = df_final.drop(['nome', 'descricao'], axis=1).columns
     X = df_final[colunas_x_treino]
     Y = df_final['nome']
 
+    # 2. Geração dos Pesos da Amostra (Sample Weights)
+    df_treino['num_ingredientes'] = df_treino['ingredientes'].apply(lambda x: len(x.split(',')))
+    pesos = df_treino['num_ingredientes'].values / df_treino['num_ingredientes'].sum() * len(df_treino)
+    pesos = np.maximum(pesos, 1) # Garante que o peso mínimo é 1
+
+    # 3. Treinamento do Modelo com Pesos
     modelo = DecisionTreeClassifier(random_state=42)
-    modelo.fit(X, Y)
+    modelo.fit(X, Y, sample_weight=pesos)
 
     # Salva no estado da sessão
     st.session_state.modelo_arvore = modelo
     st.session_state.mlb = mlb
     st.session_state.colunas_x_treino = colunas_x_treino
+    st.session_state.df_completo = df
 
-#Função de Recomendação com ML
+
+# Função de Recomendação com ML
 
 def recomendar_com_ml(refeicao, diabetes, ingrediente_usuario):
-    mlb_local = st.session_state.mlb
+
     colunas_local = st.session_state.colunas_x_treino
     modelo_local = st.session_state.modelo_arvore
+    df_receitas = st.session_state.df_completo # Puxa do Session State
 
-    # Prepara input
-    X_novo = pd.DataFrame(0, index=[0], columns=colunas_local)
-
+    # 1. Pré-processamento e Normalização
     ref_norm = normalizar_texto(refeicao)
-    if ref_norm in ['almoco', 'jantar']: ref_norm = 'principal'
-
+    # Mapeamento para os tipos de refeição no DataFrame ('cafe', 'principal', 'lanche')
+    user_ref_check = 'principal' if ref_norm in ['almoco', 'jantar'] else ref_norm
     dia_norm = normalizar_texto(diabetes).replace(" ", "")
     ing_norm = normalizar_texto(ingrediente_usuario)
 
-    # Seta colunas One-Hot
-    if f'tipo_refeicao_{ref_norm}' in X_novo.columns: X_novo.loc[0, f'tipo_refeicao_{ref_norm}'] = 1
-    if f'tipo_diabetes_{dia_norm}' in X_novo.columns: X_novo.loc[0, f'tipo_diabetes_{dia_norm}'] = 1
-    elif 'ambos' in dia_norm and f'tipo_diabetes_ambos' in X_novo.columns: X_novo.loc[0, f'tipo_diabetes_ambos'] = 1
+    tipos_validos_diabetes = ['tipo1', 'ambos'] if "tipo1" in dia_norm else ['tipo2', 'ambos']
 
-    # Seta ingrediente
-    if ing_norm and ing_norm not in ['nao', 'na', ''] and ing_norm in mlb_local.classes_:
-         X_novo.loc[0, f'ingrediente_{ing_norm}'] = 1
+    # 2.Sub-DataFrame com receitas do tipo de refeição desejado
+    df_filtrado = df_receitas[df_receitas['tipo_refeicao'] == user_ref_check].copy()
 
-    # Predição
+    if df_filtrado.empty:
+        return None, None, None
+
+    # 3. Preparação do Input para o ML
+    X_novo = pd.DataFrame(0, index=[0], columns=colunas_local)
+
+    # Seta coluna de Diabetes
+    dia_col = f'tipo_diabetes_{dia_norm}'
+    if dia_col in X_novo.columns:
+        X_novo.loc[0, dia_col] = 1
+    elif 'ambos' in dia_norm and f'tipo_diabetes_ambos' in X_novo.columns:
+        X_novo.loc[0, f'tipo_diabetes_ambos'] = 1
+
+    # Seta coluna de Ingrediente
+    ing_col_name = f'ingrediente_{ing_norm}'
+    if ing_norm and ing_norm not in ['nao', 'na', ''] and ing_col_name in X_novo.columns:
+          X_novo.loc[0, ing_col_name] = 1
+
+    receita_obj = None
+
     try:
-        receita_prevista = modelo_local.predict(X_novo)[0]
+        # 4. Predição do ML
+        receita_prevista_nome = modelo_local.predict(X_novo)[0]
+        receita_obj_ml = df_receitas[df_receitas['nome'] == receita_prevista_nome].iloc[0]
 
-        # Guardrail: Verifica compatibilidade
-        receita_obj = df[df['nome'] == receita_prevista].iloc[0]
+        # 5. Validação da Predição (Pós-Processamento)
 
-        # Lógica simplificada de compatibilidade
-        tipo_user_str = "Tipo 1" if "tipo1" in dia_norm else "Tipo 2"
-        tipos_validos = ['tipo1', 'ambos'] if "tipo1" in dia_norm else ['tipo2', 'ambos']
+        # 5a. O ML ACERTOU na refeição E é compatível com o diabetes?
+        ml_ref_match = (normalizar_texto(receita_obj_ml['tipo_refeicao']) == user_ref_check)
+        ml_dia_match = (normalizar_texto(receita_obj_ml['tipo_diabetes']) in tipos_validos_diabetes)
 
-        mismatch = None
-        aviso = None
-
-        if normalizar_texto(receita_obj['tipo_diabetes']) not in tipos_validos:
-            mismatch = (receita_obj['tipo_diabetes'], tipo_user_str)
-
-        return receita_obj, aviso, mismatch
+        if ml_ref_match and ml_dia_match:
+             # ML ACERTOU TUDO. Usamos a sugestão dele.
+             receita_obj = receita_obj_ml
+        else:
+             # ML NÃO ACERTOU na refeição ou no diabetes. Precisa de Fallback
+             raise Exception("ML Inconsistente")
 
     except Exception as e:
-        return None, None, None
+        # 6. FALLBACK HEURÍSTICO CORRIGIDO (Prioridade Absoluta ao Ingrediente + Refeição)
+
+        # Tenta achar Ingrediente + Refeição, ignorando o Diabetes inicialmente
+        if ing_norm and ing_norm not in ['nao', 'na', '']:
+            df_match_ing = df_filtrado[df_filtrado['ingredientes'].apply(lambda x: ing_norm in normalizar_texto(x))]
+
+            if not df_match_ing.empty:
+                 # PRIORIDADE 1.1: Encontrou Ingrediente + Refeição.
+                 # Retorna a sugestão, mesmo com mismatch de Diabetes (será avisado ao usuário).
+                 # Usando random.randint para amostragem aleatória no Streamlit.
+                 receita_obj = df_match_ing.sample(n=1, random_state=random.randint(1, 1000)).iloc[0]
+
+            else:
+                 # PRIORIDADE 1.2: Ingrediente não encontrado. Volta a focar em Refeição + Diabetes.
+                 df_prioridade_dia = df_filtrado[df_filtrado['tipo_diabetes'].apply(lambda x: normalizar_texto(x) in tipos_validos_diabetes)]
+
+                 if not df_prioridade_dia.empty:
+                     # Encontrou Refeição + Diabetes (sem o ingrediente).
+                     receita_obj = df_prioridade_dia.sample(n=1, random_state=random.randint(1, 1000)).iloc[0]
+                 else:
+                     # Último recurso: pega qualquer receita do tipo de refeição solicitado
+                     receita_obj = df_filtrado.sample(n=1, random_state=random.randint(1, 1000)).iloc[0]
+        else:
+            # Não houve ingrediente. Foca em Refeição + Diabetes.
+            df_prioridade_dia = df_filtrado[df_filtrado['tipo_diabetes'].apply(lambda x: normalizar_texto(x) in tipos_validos_diabetes)]
+
+            if not df_prioridade_dia.empty:
+                receita_obj = df_prioridade_dia.sample(n=1, random_state=random.randint(1, 1000)).iloc[0]
+            else:
+                 # Último recurso: pega qualquer receita do tipo de refeição solicitado
+                receita_obj = df_filtrado.sample(n=1, random_state=random.randint(1, 1000)).iloc[0]
+
+
+    # 7. Cálculo de Mismatch (Apenas para o Tipo de Diabetes)
+    mismatch = None
+    if receita_obj is not None:
+        tipo_user_str = "Tipo 1" if "tipo1" in dia_norm else "Tipo 2"
+        # Verifica se o tipo de diabetes da receita (mesmo a do fallback) é incompatível com o usuário
+        if normalizar_texto(receita_obj['tipo_diabetes']) not in tipos_validos_diabetes:
+             mismatch = (receita_obj['tipo_diabetes'], tipo_user_str)
+
+    return receita_obj, None, mismatch
 
 
 def verificar_assunto_com_gemini(texto):
@@ -186,7 +252,7 @@ def verificar_assunto_com_gemini(texto):
         return "SIM" in response.text.upper()
     except:
         return True
-
+    
 # --- 4. INTERFACE STREAMLIT (Lógica de Fases) ---
 
 # Cabeçalho e Logout
